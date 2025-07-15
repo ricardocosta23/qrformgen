@@ -136,7 +136,7 @@ def generate_qr_code(url):
         return None
 
 def create_composite_image(qr_image, overlay_color):
-    """Create composite image with background, overlay, and QR code"""
+    """Create composite image with background, overlay, QR code, and logo"""
     try:
         # Create background
         background = create_background_image()
@@ -163,6 +163,46 @@ def create_composite_image(qr_image, overlay_color):
         
         # Paste QR code onto composite (QR code should be opaque)
         composite.paste(qr_rgba, (qr_x, qr_y), qr_rgba)
+        
+        # Add TopService logo below QR code
+        try:
+            logo_path = "attached_assets/img_logo_1752594382036.png"
+            logo = Image.open(logo_path)
+            
+            # Calculate logo size (make it proportional to the image)
+            logo_width = 300  # Adjust size as needed
+            logo_height = int(logo.height * (logo_width / logo.width))
+            logo_resized = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+            
+            # Convert logo to RGBA for transparency support
+            logo_rgba = logo_resized.convert('RGBA')
+            
+            # Calculate position for logo (center bottom, below QR code)
+            logo_x = (1000 - logo_width) // 2
+            # Position logo below QR code with some spacing
+            qr_bottom = qr_y + qr_size
+            spacing = 40  # Space between QR code and logo
+            logo_y = qr_bottom + spacing
+            
+            # Make sure logo fits within the image boundaries
+            if logo_y + logo_height > 1000:
+                # Adjust logo size if it doesn't fit
+                available_height = 1000 - qr_bottom - spacing - 20  # 20px margin from bottom
+                if available_height > 0:
+                    logo_height = min(logo_height, available_height)
+                    logo_width = int(logo.width * (logo_height / logo.height))
+                    logo_resized = logo.resize((logo_width, logo_height), Image.Resampling.LANCZOS)
+                    logo_rgba = logo_resized.convert('RGBA')
+                    logo_x = (1000 - logo_width) // 2
+                    logo_y = qr_bottom + spacing
+            
+            # Paste logo onto composite
+            composite.paste(logo_rgba, (logo_x, logo_y), logo_rgba)
+            logger.info("Successfully added TopService logo to QR code image")
+            
+        except Exception as logo_error:
+            logger.error(f"Error adding logo to image: {logo_error}")
+            # Continue without logo if there's an error
         
         # Convert back to RGB for final output
         return composite.convert('RGB')
